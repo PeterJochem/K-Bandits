@@ -3,7 +3,9 @@
 #include <cmath>
 #include <random>
 
-
+// Globals
+int maxMean = 15;
+int maxVariance = 5;
 
 /* This class describes one of the K-Bandits 
  */
@@ -47,20 +49,35 @@ class Agent {
 	// Fields
 	int numBandits;
 	
-	Bandit* myArray;
+	// List of all our agent's bandits
+	Bandit* allBandits;
 	
 	public:
 		// Constructor
 		Agent(int numBandits1) {
 			
-			// numBandits = numBandits1;
 			this->numBandits = numBandits1;
+			allBandits = (Bandit*) malloc(sizeof(Bandit) * numBandits);
 			
-			std::cout << this->numBandits;
+			for (int i = 0; i < numBandits; ++i) {
 
-			myArray = (Bandit*)malloc(sizeof(Bandit) * numBandits);
+				int nextVariance = rand() % maxVariance;
+				int nextMean = rand() % maxMean;
+
+				*(allBandits + i) = Bandit(nextMean, nextVariance); 
+			}
+					
+			/* Test to make sure I set this up right	
+			for (int i = 0; i < numBandits; ++i) {
+				std::cout << "\n";
+			        std::cout << ( *(allBandits + i) ).sample();
+        			std::cout << "\n";
+			}
+			*/	
+
 		}
 		
+		// Defined below - chooses agent's next bandit
 		int chooseBandit(void);			
 	};
 
@@ -77,11 +94,9 @@ int Agent::chooseBandit(void) {
 }
 
 
-
 int main(void) {
 
-	std::cout << "Hello\n";
-	std::cout << "Updates\n";
+	std::cout << "K_Bandits!\n";
 			
 	// Create an agent
 	Agent myAgent = Agent(10);
@@ -89,11 +104,6 @@ int main(void) {
 	// Create K-bandits
 	Bandit myBandit = Bandit(1.0, 0.0);
 		
-	
-	std::cout << "\n";		
-	std::cout << myBandit.sample();
-	std::cout << "\n";
-
 	// Learn
 	// Plot data
 
