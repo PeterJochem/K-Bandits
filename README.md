@@ -1,7 +1,7 @@
 # Description
 Describe what the k-bandits problem is 
 
-![Multi Armed Bandit]( "Multi Armed Bandit")
+![Multi Armed Bandit](https://github.com/PeterJochem/K-Bandits/blob/master/multiarmedbandit.jpg "Multi Armed Bandit")
 
 # Results
 
