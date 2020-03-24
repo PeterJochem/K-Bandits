@@ -24,9 +24,9 @@ add_executable(myAgent myAgent.cpp)
 # name is the name of the library without the extension or lib prefix
 # name creates a cmake "target"
 #add_library(libname fileA.cpp fileB.cpp)
-add_library(stdlib myAgent.cpp)
-add_library(iostream myAgent.cpp)
-add_library(random myAgent.cpp)
+#add_library(stdlib myAgent.cpp)
+#add_library(iostream myAgent.cpp)
+#add_library(random myAgent.cpp)
 
 # Use target_link_libraries to add dependencies to a "target"
 # (e.g., a library or executable)
