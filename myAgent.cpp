@@ -8,6 +8,8 @@
 int maxMean = 10;
 int maxVariance = 3;
 
+
+
 /* This class describes one of the K-Bandits 
  */
 class Bandit {
@@ -77,6 +79,8 @@ class Agent {
         double exploreRateDecay;
 	
 	int numSamples;
+	
+	double totalReward = 0.0;
 
 	public:
 		// How many times have we sampled from all bandits
@@ -126,10 +130,10 @@ class Agent {
                                         allData[i][j] = 0.0;
                                 }
 			}
-
 		}	
+		
 		// Describe
-		void learn(void);
+		void runEpisode(void);
 		// Defined below - chooses agent's next bandit
 		void chooseBandit(void);		
 		// Implements the bandit's greedy choice making	
@@ -143,13 +147,32 @@ class Agent {
 };
 
 /* Describe this method here
+ * Freeze the policy and compute the average reward
+ */
+double sampleAverageReward(void) {
+
+	int timesToSample = 100;
+	int currentSample = 0;
+	while ( currentSample < timesToSample ) {
+
+                // Chooses next data point and writes value
+                // to the correct data structure                
+                //chooseBandit();
+		;
+                //currentIndex++;
+                //currentAction++;
+        }
+}
+
+
+
+/* Describe this method here
  */ 
 void Agent::printData(void) {
 	
 	for (int i = 0; i < this->numBandits; ++i) {
 		std::cout << *allBandits[i]; 
 	}
-	
 }
 
 /* Describe this method here
@@ -182,7 +205,9 @@ void Agent::printAllEstimates(void) {
 
 /* Describe this method here
  */
-void Agent::learn(void) {
+void Agent::runEpisode(void) {
+
+	// Re-set Agent's data
 
 	// Sample
 	int currentAction = 0;
@@ -191,9 +216,12 @@ void Agent::learn(void) {
 		// Chooses next data point and writes value
 		// to the correct data structure		
 		chooseBandit();
-
 		currentIndex++;
 		currentAction++;
+		
+		// Compute the average reward so far
+		
+
 	}	
 
 	// Write data to list so we can plot it later
@@ -233,7 +261,7 @@ void Agent::updateEstimate(int agentNumber, double nextEstimate) {
 	else {
 		allData[currentIndex][agentNumber] = newAverage;
 	}
-
+		
 	return;
 }
 
@@ -296,14 +324,62 @@ void Agent::chooseBandit(void) {
 		
 	if ( exploreRate > exploreNow ) {
 		// Choose a bandit at random
-		explore();
+		totalReward = totalReward + explore();
 	}
 	else {
-		chooseGreedyBandit();
+		totalReward = totalReward + chooseGreedyBandit();
 	}
 	
 	return;
 }
+
+/* This class holds a list of agents and varies
+ * their search rates to see/compare diffrent approaches
+ */
+class varyParameters {
+
+        public:
+                int numberAgents;
+		Agent** allAgents;
+
+                varyParameters(int numberAgents) {
+			this->numberAgents = numberAgents; 
+                        //allAgents = new Agent(0.0, 0.0, 0.0);
+                
+			allAgents = static_cast<Agent**> ( malloc(sizeof(Agent) * numberAgents) );
+
+			for (int i = 0; i < numberAgents; ++i) {
+				int numberBandits = 5;
+				int numSamples = 100;
+				double exploreRate = 0.1;
+				allAgents[i] = new Agent(numberBandits, numSamples, exploreRate);	
+			}
+		}
+
+		/* Describe this method here
+		 */ 
+		void runAllEpisodes(void) {
+
+			for (int i = 0; i < numAgents; ++i) {
+
+				int currentAction = 0;
+		        	while ( currentAction < numSamples ) {
+
+                			// Chooses next data point and writes value
+                			// to the correct data structure                
+                			// allBandits[i].chooseBandit();
+                			// allBandits[i].currentIndex++;
+                			currentAction++;
+
+                			// Compute the average reward so far
+        			}
+
+				currentAction = 0;
+
+        			// Write data to list so we can plot it later
+			}		
+		}
+};
 
 
 int main(void) {
@@ -313,7 +389,7 @@ int main(void) {
 	// Create an agent
 	Agent myAgent = Agent(5, 100, 0.1);	
 				
-	myAgent.learn();	
+	myAgent.runEpisode();	
 	
 	myAgent.printData();
 
