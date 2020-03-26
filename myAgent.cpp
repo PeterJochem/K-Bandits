@@ -2,10 +2,11 @@
 #include <iostream>
 #include <cmath>
 #include <random>
+#include <fstream>
 
 // Globals
-int maxMean = 15;
-int maxVariance = 5;
+int maxMean = 10;
+int maxVariance = 3;
 
 /* This class describes one of the K-Bandits 
  */
@@ -23,15 +24,28 @@ class Bandit {
                         this->variance = variance;
                         this->mean = mean;
 				
-			timesSampled = 0;	
+			this->timesSampled = 0;	
 
                         // Initialize the distribution
                         myDistribution = std::normal_distribution<double>(mean, variance);
                 }
 
+		 /* Ovrload the print of a Bandit object
+		  */
+		/* Describe this method here
+		 */
+		friend std::ostream& operator<< (std::ostream &out, const Bandit &myBandit);
+
                 // Agent requests another data point
                 double sample(void);
 };
+
+std::ostream& operator<< (std::ostream &out, const Bandit &myBandit) {
+    // Since operator<< is a friend of the Point class, we can access Point's members directly.
+    out << "(" << myBandit.mean << ", " << myBandit.variance << ")" << std::endl; // actual output done here
+ 
+    return out; // return std::ostream so we can chain calls to operator<<
+}
 
 /* This takes the given bandit and generates
  * the next data point for it 
@@ -61,24 +75,29 @@ class Agent {
 
 	double exploreRate;
         double exploreRateDecay;
-
+	
 	int numSamples;
 
 	public:
+		// How many times have we sampled from all bandits
+		int currentIndex;
+
 		// Constructor
 		// numBandits is the number of bandits
 		// numSamples is the length of the episode ie 
 		// how many times the agent can choose an action
-		Agent(int numBandits, int numSamples) {
+		Agent(int numBandits, int numSamples, double exploreRate) {
 			
+			this->currentIndex = 0;	
+
 			this->numBandits = numBandits;
 			allBandits = static_cast<Bandit**>(malloc(sizeof(Bandit*) * numBandits) );
 			
-			allData = static_cast<double**>(malloc(sizeof(double*) * numBandits) );
+			allData = static_cast<double**>(malloc(sizeof(double**) * numSamples) );
 			
 			valueEstimate = static_cast<double*>(malloc(sizeof(double) * numBandits) );
 
-			this->exploreRate = 0.1;
+			this->exploreRate = exploreRate;
                         this->exploreRateDecay = 0.1;
 			
 			this->numSamples = numSamples;
@@ -88,42 +107,77 @@ class Agent {
 				
 				// Create new bandit with a distribution
 				// specefied by gloabls max variance etc.
-				int nextVariance = rand() % maxVariance;
-				int nextMean = rand() % maxMean;
+				double nextVariance = (rand() % maxVariance) + 0.5;
+				double nextMean = (double(rand() % maxMean) );
 
 				allBandits[i] = new Bandit(nextMean, nextVariance);
 					
-				valueEstimate[i] = 0.0;
-
-				allData[i] = static_cast<double*>(malloc(sizeof(double*) * numSamples) ); 
-
-				for (int j = 0; j < numSamples; ++j) {
-					// Zero out the list of data points
-					allData[i][j] = 0.0;
-				}
+				// How to initialize this?
+				valueEstimate[i] = 1000.0;
 			}
 
-					
-			/* Test to make sure I set this up right	
-			for (int i = 0; i < numBandits; ++i) {
-				std::cout << "\n";
-			        std::cout << ( **(allBandits + i) ).sample();
-        			std::cout << "\n";
-			}
-			*/	
+			// Init the list of all observed data
+			for (int i = 0; i < numSamples; ++i) {
+				
+				allData[i] = static_cast<double*>(malloc(sizeof(double*) * numBandits) );
 
-		}
-		
+                                for (int j = 0; j < numBandits; ++j) {
+                                        // Zero out the list of data points
+                                        allData[i][j] = 0.0;
+                                }
+			}
+
+		}	
 		// Describe
 		void learn(void);
-
 		// Defined below - chooses agent's next bandit
 		void chooseBandit(void);		
 		// Implements the bandit's greedy choice making	
 		double chooseGreedyBandit(void);
 		// implements the bandit's exploring methods
 		double explore(void);
-	};
+		void updateEstimate(int, double);
+		void printAllEstimates(void);
+		void writeData(void);
+		void printData(void);
+};
+
+/* Describe this method here
+ */ 
+void Agent::printData(void) {
+	
+	for (int i = 0; i < this->numBandits; ++i) {
+		std::cout << *allBandits[i]; 
+	}
+	
+}
+
+/* Describe this method here
+ */ 
+void Agent::writeData(void) {
+	
+	std::ofstream myFile;	
+	myFile.open ("data.txt");
+	for (int i = 0; i < numBandits; ++i) {
+		
+		for (int j = 0; j < numSamples; ++j) {
+			
+			myFile << allData[j][i] << " ";	
+		}
+		myFile << "\n";
+	}
+
+        myFile.close();
+}
+
+/* Describe this method 
+ */
+void Agent::printAllEstimates(void) {
+		
+	for (int i = 0; i < numBandits; ++i) {
+		std::cout << valueEstimate[i] << std::endl; 
+	}
+}
 
 
 /* Describe this method here
@@ -137,15 +191,51 @@ void Agent::learn(void) {
 		// Chooses next data point and writes value
 		// to the correct data structure		
 		chooseBandit();
-		
-		// std::cout << "more data " << std::endl; 
 
+		currentIndex++;
 		currentAction++;
 	}	
 
 	// Write data to list so we can plot it later
 }
 
+
+/* Describe this method here
+ */
+void Agent::updateEstimate(int agentNumber, double nextEstimate) {
+
+	// Iterative update rule: Sample_N + ( (1/N) * (Old_Avg - Sample_N) )
+	
+	int numSamples = allBandits[agentNumber]->timesSampled;
+	double newAverage = 0; 
+
+	if ( numSamples == 0 ) {
+		newAverage = nextEstimate;
+	}
+	else {
+		newAverage = valueEstimate[agentNumber] + ( (1.0/numSamples) * (nextEstimate - valueEstimate[agentNumber]) );   	
+	}
+
+
+	//std::cout << newAverage << "\n";
+	valueEstimate[agentNumber] = newAverage;	
+		
+	// Record the agent's estimates at this point in time
+	if ( currentIndex != 0 ) {
+		// Copy the prior times estimates
+		for (int i = 0; i < numBandits; ++i) {
+			allData[currentIndex][i] = allData[currentIndex - 1][i];  
+		}
+
+		// Only this estimate changes
+		allData[currentIndex][agentNumber] = newAverage; 
+	}
+	else {
+		allData[currentIndex][agentNumber] = newAverage;
+	}
+
+	return;
+}
 
 /* Describe this method here
  */
@@ -168,12 +258,9 @@ double Agent::chooseGreedyBandit(void) {
 	double nextValue = (allBandits[index])->sample();
 
 	// Record the observed data point
-        allData[index][allBandits[index]->timesSampled] = nextValue;
+        //allData[index][allBandits[index]->timesSampled] = nextValue;
+	updateEstimate(index, nextValue);
 	allBandits[index]->timesSampled++;
-
-        // Update the agent's value estimate 
-        //valueEstimate[index] =  
-
 
 	return nextValue;
 }
@@ -188,11 +275,10 @@ double Agent::explore(void) {
 	double nextValue = allBandits[randomIndex]->sample();
 	
 	// Record the observed data point
-	allData[randomIndex][allBandits[randomIndex]->timesSampled] = nextValue; 	
+	//allData[randomIndex][allBandits[randomIndex]->timesSampled] = nextValue; 	
+	
+	updateEstimate(randomIndex, nextValue);	
 	allBandits[randomIndex]->timesSampled++;
-
-	// Update the agent's value estimate 
-	//valueEstimate[randomIndex] =  
 	
 	return nextValue;
 }	
@@ -206,9 +292,7 @@ double Agent::explore(void) {
 void Agent::chooseBandit(void) {
 	// Add a greedy method - ie choose only greedily
 	
-	int nextVariance = rand() % maxVariance;
 	double exploreNow = ( (double) rand() ) / RAND_MAX;
-	
 		
 	if ( exploreRate > exploreNow ) {
 		// Choose a bandit at random
@@ -227,13 +311,14 @@ int main(void) {
 	std::cout << "K_Bandits!\n";
 			
 	// Create an agent
-	Agent myAgent = Agent(10, 1000);	
-
+	Agent myAgent = Agent(5, 100, 0.1);	
+				
 	myAgent.learn();	
-		
-	// Learn
-	// Plot data
+	
+	myAgent.printData();
 
+	// Write data to file to be plotted
+  	myAgent.writeData();
 
 	return 0;
 }

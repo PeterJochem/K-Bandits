@@ -23,8 +23,8 @@ add_executable(myAgent myAgent.cpp)
 # you don't need or want to.
 # name is the name of the library without the extension or lib prefix
 # name creates a cmake "target"
-#add_library(libname fileA.cpp fileB.cpp)
-#add_library(stdlib myAgent.cpp)
+#add_library(/usr/include/python3.6m/Python.h fileA.cpp fileB.cpp)
+#add_library(/usr/lib/python3.6/config-3.6m-x86_64-linux-gnu/libpython3.6.so myAgent.cpp)
 #add_library(iostream myAgent.cpp)
 #add_library(random myAgent.cpp)
 
@@ -33,7 +33,10 @@ add_executable(myAgent myAgent.cpp)
 # This will automatically add all required library files
 # that need to be linked
 # and paths to th locations of header files
-#target_link_libraries(Name Eigen3::Eigen)
+# target_link_libraries(Name Eigen3::Eigen)
+#target_link_libraries(myAgent /usr/lib/python3.6/config-3.6m-x86_64-linux-gnu/libpython3.6.so)
+#target_link_libraries(myAgent /usr/lib/python3.6)
+
 
 # specify additional compilation flags for a target
 #target_compile_options(Agent -Wall)
