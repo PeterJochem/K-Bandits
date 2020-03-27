@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 # get number of agents from the command line
 
-numAgents = 3
+numAgents = 5
 
 for j in range(numAgents):
 
@@ -25,7 +25,7 @@ plt.title("K-Bandits Varying Explore Rate")
 plt.ylabel('AverageReward (utils)')
 plt.xlabel('time')
 
-plt.ylim((5, 7))
+plt.ylim((0, 30))
 
 plt.show()
 
