@@ -3,12 +3,13 @@
 #include <cmath>
 #include <random>
 #include <fstream>
+#include <string>
 
 // Globals
 int maxMean = 10;
-int maxVariance = 3;
+int maxVariance = 10;
 
-
+int count = 0;
 
 /* This class describes one of the K-Bandits 
  */
@@ -64,15 +65,10 @@ double Bandit::sample(void) {
  * how to navigate the K-Bandits problem
  */
 class Agent { 
-	// Fields
-	int numBandits;
 	
 	// List of all our agent's bandits
 	Bandit** allBandits;	
 
-	// These are the agent's estimates of how valuable each action is
-	double** allData; 	
-	
 	double* valueEstimate;
 
 	double exploreRate;
@@ -81,10 +77,16 @@ class Agent {
 	int numSamples;
 	
 	double totalReward = 0.0;
-
+	
 	public:
 		// How many times have we sampled from all bandits
 		int currentIndex;
+		int numBandits;	
+		// These are the agent's estimates of how valuable each action is
+        	double** allData;
+		
+		// This stores a list of average reward 
+	        double* averageReward;
 
 		// Constructor
 		// numBandits is the number of bandits
@@ -98,7 +100,9 @@ class Agent {
 			allBandits = static_cast<Bandit**>(malloc(sizeof(Bandit*) * numBandits) );
 			
 			allData = static_cast<double**>(malloc(sizeof(double**) * numSamples) );
-			
+
+			averageReward = static_cast<double*>(malloc(sizeof(double) * numSamples) );
+
 			valueEstimate = static_cast<double*>(malloc(sizeof(double) * numBandits) );
 
 			this->exploreRate = exploreRate;
@@ -111,14 +115,18 @@ class Agent {
 				
 				// Create new bandit with a distribution
 				// specefied by gloabls max variance etc.
-				double nextVariance = (rand() % maxVariance) + 0.5;
-				double nextMean = (double(rand() % maxMean) );
+				double nextVariance = 2.0; // (rand() % maxVariance) + 0.5;
+				double nextMean = count + 1; // (double(rand() % maxMean) );
+				
+				count++;
 
 				allBandits[i] = new Bandit(nextMean, nextVariance);
 					
 				// How to initialize this?
-				valueEstimate[i] = 1000.0;
+				valueEstimate[i] = 10.0;
 			}
+
+			count = 0;
 
 			// Init the list of all observed data
 			for (int i = 0; i < numSamples; ++i) {
@@ -135,33 +143,39 @@ class Agent {
 		// Describe
 		void runEpisode(void);
 		// Defined below - chooses agent's next bandit
-		void chooseBandit(void);		
+		double chooseBandit(bool = true);		
 		// Implements the bandit's greedy choice making	
-		double chooseGreedyBandit(void);
+		double chooseGreedyBandit(bool = true);
 		// implements the bandit's exploring methods
-		double explore(void);
+		double explore(bool = true);
 		void updateEstimate(int, double);
 		void printAllEstimates(void);
 		void writeData(void);
 		void printData(void);
+		double sampleAverageReward(void);
+
+		
 };
 
 /* Describe this method here
  * Freeze the policy and compute the average reward
  */
-double sampleAverageReward(void) {
+double Agent::sampleAverageReward(void) {
 
 	int timesToSample = 100;
 	int currentSample = 0;
+	
+	double totalReward = 0.0;
 	while ( currentSample < timesToSample ) {
 
                 // Chooses next data point and writes value
                 // to the correct data structure                
-                //chooseBandit();
-		;
-                //currentIndex++;
+                totalReward = totalReward + chooseBandit(false);
+                currentSample++;
                 //currentAction++;
         }
+
+	return totalReward / timesToSample;
 }
 
 
@@ -220,7 +234,7 @@ void Agent::runEpisode(void) {
 		currentAction++;
 		
 		// Compute the average reward so far
-		
+		// Write to the list	
 
 	}	
 
@@ -267,7 +281,7 @@ void Agent::updateEstimate(int agentNumber, double nextEstimate) {
 
 /* Describe this method here
  */
-double Agent::chooseGreedyBandit(void) {
+double Agent::chooseGreedyBandit(bool update) {
 	
 	double maxValue = -10000000.0;
 	int index = 0;
@@ -285,29 +299,29 @@ double Agent::chooseGreedyBandit(void) {
 	
 	double nextValue = (allBandits[index])->sample();
 
-	// Record the observed data point
-        //allData[index][allBandits[index]->timesSampled] = nextValue;
-	updateEstimate(index, nextValue);
-	allBandits[index]->timesSampled++;
+	
+	if ( update ) {
+		updateEstimate(index, nextValue);
+		allBandits[index]->timesSampled++;
+	}
 
 	return nextValue;
 }
 
 /* Describe this method here
  */
-double Agent::explore(void) {
+double Agent::explore(bool update) {
 
 	// Return an index between 0 and numBandits
 	int randomIndex = ( rand() % numBandits );	
 		
 	double nextValue = allBandits[randomIndex]->sample();
 	
-	// Record the observed data point
-	//allData[randomIndex][allBandits[randomIndex]->timesSampled] = nextValue; 	
-	
-	updateEstimate(randomIndex, nextValue);	
-	allBandits[randomIndex]->timesSampled++;
-	
+	if ( update ) {	
+		updateEstimate(randomIndex, nextValue);	
+		allBandits[randomIndex]->timesSampled++;
+	}
+
 	return nextValue;
 }	
 
@@ -317,20 +331,25 @@ double Agent::explore(void) {
  * Returns the chosen bandits next data point as specefied by
  * its probability distribution
  */ 
-void Agent::chooseBandit(void) {
+double Agent::chooseBandit(bool update) {
 	// Add a greedy method - ie choose only greedily
 	
 	double exploreNow = ( (double) rand() ) / RAND_MAX;
+	
+	double newReward = 0.0;
 		
 	if ( exploreRate > exploreNow ) {
 		// Choose a bandit at random
-		totalReward = totalReward + explore();
+		//totalReward = totalReward + explore(update);
+		newReward = explore(update);
 	}
 	else {
-		totalReward = totalReward + chooseGreedyBandit();
+		// totalReward = totalReward + chooseGreedyBandit(update);
+		newReward = chooseGreedyBandit(update);
 	}
 	
-	return;
+	totalReward = totalReward + newReward;
+	return newReward;
 }
 
 /* This class holds a list of agents and varies
@@ -340,45 +359,67 @@ class varyParameters {
 
         public:
                 int numberAgents;
+		int numSamples;
 		Agent** allAgents;
 
+		// Constructor
                 varyParameters(int numberAgents) {
 			this->numberAgents = numberAgents; 
-                        //allAgents = new Agent(0.0, 0.0, 0.0);
                 
 			allAgents = static_cast<Agent**> ( malloc(sizeof(Agent) * numberAgents) );
-
+			
+			this->numSamples = 100000;
+			
+			// Create the agents
 			for (int i = 0; i < numberAgents; ++i) {
-				int numberBandits = 5;
-				int numSamples = 100;
-				double exploreRate = 0.1;
+				
+				// VARY THIS!
+				double exploreRate = 0.2 * (i + 1);
+				
+				int numberBandits = 10;
 				allAgents[i] = new Agent(numberBandits, numSamples, exploreRate);	
 			}
 		}
 
+		
 		/* Describe this method here
-		 */ 
-		void runAllEpisodes(void) {
+		 */
+		void writeData(int agentNumber) {
+			std::ofstream myFile;
+		        myFile.open("agent" + std::to_string(agentNumber) + ".txt");
+        		
+			for (int i = 0; i < numSamples; ++i) {
+				
+				double sum = 0.0;
+                		for (int j = 0; j < allAgents[agentNumber]->numBandits; ++j) {
+					sum = sum + ( (double) allAgents[agentNumber]->allData[i][j] );
+                		}
+					
+				myFile << sum / allAgents[agentNumber]->numBandits << " ";
+				sum = 0.0;
+        		}
 
-			for (int i = 0; i < numAgents; ++i) {
-
-				int currentAction = 0;
-		        	while ( currentAction < numSamples ) {
-
-                			// Chooses next data point and writes value
-                			// to the correct data structure                
-                			// allBandits[i].chooseBandit();
-                			// allBandits[i].currentIndex++;
-                			currentAction++;
-
-                			// Compute the average reward so far
-        			}
-
-				currentAction = 0;
-
-        			// Write data to list so we can plot it later
-			}		
+			myFile << "\n";
+       			myFile.close();
 		}
+
+		/* Describe this method here
+                 */
+                void runAllEpisodes(void) {
+
+                        // Run an episode for each agent
+                        for (int i = 0; i < numberAgents; ++i) {
+
+                                allAgents[i]->runEpisode();
+
+                                // Write data to list so we can plot it later
+                                writeData(i);
+                        	
+				// std::cout << *allAgents[i];
+			}
+			
+
+                }
 };
 
 
@@ -387,14 +428,15 @@ int main(void) {
 	std::cout << "K_Bandits!\n";
 			
 	// Create an agent
-	Agent myAgent = Agent(5, 100, 0.1);	
-				
-	myAgent.runEpisode();	
-	
-	myAgent.printData();
-
+	//Agent myAgent = Agent(5, 100, 0.1);					
+	//myAgent.runEpisode();	
+	//myAgent.printData();
 	// Write data to file to be plotted
-  	myAgent.writeData();
+  	//myAgent.writeData();
+
+	varyParameters myExperiment(3);
+	myExperiment.runAllEpisodes();
+
 
 	return 0;
 }
