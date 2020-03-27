@@ -221,9 +221,6 @@ void Agent::printAllEstimates(void) {
  */
 void Agent::runEpisode(void) {
 
-	// Re-set Agent's data
-
-	// Sample
 	int currentAction = 0;
 	while ( currentAction < numSamples ) {
 
@@ -235,10 +232,6 @@ void Agent::runEpisode(void) {
 		
 		// Record the average reward under this policy	
 		averageReward[currentAction] = sampleAverageReward();	
-
-		// Compute the average reward so far
-		// Write to the list	
-
 	}	
 
 	// Write data to list so we can plot it later
@@ -377,7 +370,7 @@ class varyParameters {
 			for (int i = 0; i < numberAgents; ++i) {
 				
 				// VARY THIS!
-				double exploreRate = 0.2 * (i + 1);
+				double exploreRate = 0.1 * (i + 1);
 				
 				int numberBandits = 10;
 				allAgents[i] = new Agent(numberBandits, numSamples, exploreRate);	
@@ -392,13 +385,6 @@ class varyParameters {
 		        myFile.open("agent" + std::to_string(agentNumber) + ".txt");
         		
 			for (int i = 0; i < numSamples; ++i) {	
-				//double sum = 0.0;
-                		//for (int j = 0; j < allAgents[agentNumber]->numBandits; ++j) {
-				//	sum = sum + ( (double) allAgents[agentNumber]->allData[i][j] );
-                		//}	
-				//myFile << sum / allAgents[agentNumber]->numBandits << " ";
-				//sum = 0.0;
-				
 				myFile << allAgents[agentNumber]->averageReward[i] << " ";
 			}
 
@@ -414,14 +400,9 @@ class varyParameters {
                         for (int i = 0; i < numberAgents; ++i) {
 
                                 allAgents[i]->runEpisode();
-
                                 // Write data to list so we can plot it later
                                 writeData(i);
-                        	
-				// std::cout << *allAgents[i];
 			}
-			
-
                 }
 };
 
@@ -437,7 +418,7 @@ int main(void) {
 	// Write data to file to be plotted
   	//myAgent.writeData();
 
-	varyParameters myExperiment(5);
+	varyParameters myExperiment(10);
 	myExperiment.runAllEpisodes();
 
 

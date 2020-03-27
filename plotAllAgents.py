@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 # get number of agents from the command line
 
-numAgents = 5
+numAgents = 10
 
 for j in range(numAgents):
 
